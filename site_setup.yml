@@ -1,0 +1,15 @@
+---
+- name: Ensure certificate for {{ vhost.server_name }}
+  ansible.builtin.command: >
+    certbot certonly --standalone --non-interactive --agree-tos
+    --email {{ vhost.email }} -d {{ vhost.server_name }}
+  args:
+    creates: "/etc/letsencrypt/live/{{ vhost.server_name }}/fullchain.pem"
+
+- name: Deploy vhost config for {{ vhost.server_name }}
+  ansible.builtin.template:
+    src: vhost.j2
+    dest: "{{ sites_dir }}/{{ vhost.server_name }}.conf"
+    mode: "0644"
+  notify: Reload openresty
+

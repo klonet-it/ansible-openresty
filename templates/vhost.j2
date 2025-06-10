@@ -1,0 +1,19 @@
+server {
+    listen 80;
+    server_name {{ vhost.server_name }};
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name {{ vhost.server_name }};
+
+    ssl_certificate     /etc/letsencrypt/live/{{ vhost.server_name }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ vhost.server_name }}/privkey.pem;
+
+    ssl_session_cache shared:SSL:1m;
+    ssl_session_timeout 10m;
+
+{{ vhost.custom_config | indent(4) }}
+}
+

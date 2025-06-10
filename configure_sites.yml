@@ -1,0 +1,30 @@
+---
+- name: Configure multiple OpenResty virtual hosts with HTTPS
+  hosts: all
+  become: true
+  vars:
+    sites_dir: /etc/openresty/sites-enabled
+
+  handlers:
+    - name: Reload openresty
+      ansible.builtin.service:
+        name: openresty
+        state: reloaded
+  tasks:
+    - name: Ensure config directory exists
+      ansible.builtin.file:
+        path: "{{ sites_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Install certbot
+      ansible.builtin.package:
+        name: certbot
+        state: present
+
+    - name: Generate and deploy each site config
+      ansible.builtin.include_tasks: site_setup.yml
+      loop: "{{ vhosts }}"
+      loop_control:
+        loop_var: vhost
+
