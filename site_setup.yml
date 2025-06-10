@@ -1,7 +1,8 @@
 ---
-- name: Ensure certificate for {{ vhost.server_name }}
+- name: Ensure certificate for {{ vhost.server_name }} via webroot
   ansible.builtin.command: >
-    certbot certonly --nginx --non-interactive --agree-tos
+    certbot certonly --webroot -w {{ vhost.webroot }}
+    --non-interactive --agree-tos
     --email {{ vhost.email }} -d {{ vhost.server_name }}
   args:
     creates: "/etc/letsencrypt/live/{{ vhost.server_name }}/fullchain.pem"
