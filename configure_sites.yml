@@ -32,5 +32,5 @@
       ansible.builtin.include_tasks: site_setup.yml
       loop: "{{ vhosts }}"
       loop_control:
-        loop_var: vhost
+        loop_var: vhost 
 
