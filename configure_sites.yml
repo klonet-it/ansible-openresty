@@ -1,30 +1,46 @@
 ---
-- name: Configure multiple OpenResty virtual hosts with HTTPS
+- name: Configure OpenResty sites with Let's Encrypt certificates
   hosts: all
   become: true
   vars:
     sites_dir: /etc/openresty/sites-enabled
+
+  tasks:
+    - name: Ensure site directory exists
+      ansible.builtin.file:
+        path: "{{ sites_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Ensure webroot exists for {{ vhost.server_name }}
+      ansible.builtin.file:
+        path: "{{ vhost.webroot }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+      when: vhost.webroot is defined
+
+    - name: Ensure certificate for {{ vhost.server_name }} via webroot
+      ansible.builtin.command: >
+        certbot certonly --webroot -w {{ vhost.webroot }}
+        --non-interactive --agree-tos
+        --email {{ vhost.email }} -d {{ vhost.server_name }}
+      args:
+        creates: "/etc/letsencrypt/live/{{ vhost.server_name }}/fullchain.pem"
+      when: vhost.webroot is defined
+
+    - name: Deploy vhost config for {{ vhost.server_name }}
+      ansible.builtin.template:
+        src: vhost.j2
+        dest: "{{ sites_dir }}/{{ vhost.server_name }}.conf"
+        mode: '0644'
+      notify: Reload openresty
 
   handlers:
     - name: Reload openresty
       ansible.builtin.service:
         name: openresty
         state: reloaded
-  tasks:
-    - name: Ensure config directory exists
-      ansible.builtin.file:
-        path: "{{ sites_dir }}"
-        state: directory
-        mode: "0755"
-
-    - name: Install certbot
-      ansible.builtin.package:
-        name: certbot
-        state: present
-
-    - name: Generate and deploy each site config
-      ansible.builtin.include_tasks: site_setup.yml
-      loop: "{{ vhosts }}"
-      loop_control:
-        loop_var: vhost 
-
