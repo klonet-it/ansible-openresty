@@ -1,0 +1,74 @@
+---
+- name: Install OpenResty on RedHat and Debian based systems
+  hosts: all
+  become: true
+
+  vars:
+    openresty_repo_url_debian: "https://openresty.org/package/debian"
+    openresty_repo_url_ubuntu: "https://openresty.org/package/ubuntu"
+    openresty_repo_url_redhat: "https://openresty.org/package/centos"
+
+  tasks:
+    - name: Gather OS facts
+      ansible.builtin.setup:
+        gather_subset: min
+
+    - name: Install OpenResty on RedHat family
+      when: ansible_facts['os_family'] == "RedHat"
+      block:
+        - name: Install required dependencies
+          ansible.builtin.yum:
+            name: yum-utils
+            state: present
+
+        - name: Add OpenResty YUM repository
+          ansible.builtin.yum_repository:
+            name: openresty
+            description: OpenResty Official Repository
+            baseurl: "{{ openresty_repo_url_redhat }}/$releasever/$basearch/"
+            gpgcheck: yes
+            gpgkey: "https://openresty.org/package/pubkey.gpg"
+            enabled: yes
+
+        - name: Install OpenResty
+          ansible.builtin.yum:
+            name: openresty
+            state: present
+
+    - name: Install OpenResty on Debian/Ubuntu family
+      when: ansible_facts['os_family'] == "Debian"
+      block:
+        - name: Install prerequisites
+          ansible.builtin.apt:
+            name:
+              - curl
+              - gnupg2
+              - lsb-release
+            update_cache: yes
+            state: present
+
+        - name: Add OpenResty GPG key
+          ansible.builtin.apt_key:
+            url: https://openresty.org/package/pubkey.gpg
+            state: present
+
+        - name: Add OpenResty APT repository
+          ansible.builtin.apt_repository:
+            repo: >
+              deb {{ openresty_repo_url_debian if ansible_facts['distribution'] == 'Debian' else openresty_repo_url_ubuntu }}
+              {{ ansible_facts['lsb']['codename'] }} main
+            filename: openresty
+            state: present
+
+        - name: Install OpenResty
+          ansible.builtin.apt:
+            name: openresty
+            update_cache: yes
+            state: present
+
+    - name: Ensure OpenResty is started and enabled
+      ansible.builtin.service:
+        name: openresty
+        state: started
+        enabled: yes
+
