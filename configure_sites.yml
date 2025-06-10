@@ -25,7 +25,7 @@
     - name: Remove unmanaged virtualhosts
       ansible.builtin.file:
 	path: "{{ vhosts_dir }}/{{ item }}"
-	state: absent
+      state: absent
       loop: "{{ lookup('ansible.builtin.fileglob', vhosts_dir ~ '/*.conf', wantlist=True) | map('basename') | difference(vhosts | map(attribute='server_name') | map('regex_replace', '^', '') | map('regex_replace', '$', '.conf')) | list }}"
  
     - name: Generate and deploy each site config
