@@ -7,6 +7,17 @@
     group: www-data
     mode: '0755'
 
+- name: Deploy vhost config for {{ vhost.server_name }}
+  ansible.builtin.template:
+    src: vhost.j2
+    dest: "{{ sites_dir }}/{{ vhost.server_name }}.conf"
+    mode: '0644'
+  notify: Reload openresty
+
+- name: Wait a few seconds for OpenResty to reload
+  ansible.builtin.pause:
+    seconds: 2
+
 - name: Ensure certificate for {{ vhost.server_name }} via webroot
   ansible.builtin.command: >
     certbot certonly --webroot -w {{ vhost.webroot }}
@@ -14,10 +25,3 @@
     --email {{ vhost.email }} -d {{ vhost.server_name }}
   args:
     creates: "/etc/letsencrypt/live/{{ vhost.server_name }}/fullchain.pem"
-
-- name: Deploy vhost config for {{ vhost.server_name }}
-  ansible.builtin.template:
-    src: vhost.j2
-    dest: "{{ sites_dir }}/{{ vhost.server_name }}.conf"
-    mode: '0644'
-  notify: Reload openresty
