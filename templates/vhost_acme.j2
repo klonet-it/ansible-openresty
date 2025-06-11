@@ -1,0 +1,14 @@
+server {
+    listen 80;
+    server_name {{ vhost.server_name }};
+    root {{ vhost.webroot | default('/var/www/' ~ vhost.server_name) }};
+
+    location /.well-known/acme-challenge/ {
+        allow all;
+    }
+
+    location / {
+        return 200 'ACME challenge placeholder';
+        add_header Content-Type text/plain;
+    }
+}

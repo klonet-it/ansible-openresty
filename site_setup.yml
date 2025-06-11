@@ -7,21 +7,28 @@
     group: www-data
     mode: '0755'
 
-- name: Deploy vhost config for {{ vhost.server_name }}
-  ansible.builtin.template:
-    src: vhost.j2
+- name: Deploy temporary vhost config for ACME challenge
+  template:
+    src: vhost_acme.j2
     dest: "{{ sites_dir }}/{{ vhost.server_name }}.conf"
     mode: '0644'
   notify: Reload openresty
 
-- name: Wait a few seconds for OpenResty to reload
+- name: Wait a few seconds to ensure config is loaded
   ansible.builtin.pause:
-    seconds: 2
+    seconds: 5
 
-- name: Ensure certificate for {{ vhost.server_name }} via webroot
-  ansible.builtin.command: >
+- name: Ensure certificate via webroot
+  command: >
     certbot certonly --webroot -w {{ vhost.webroot }}
     --non-interactive --agree-tos
     --email {{ vhost.email }} -d {{ vhost.server_name }}
   args:
     creates: "/etc/letsencrypt/live/{{ vhost.server_name }}/fullchain.pem"
+
+- name: Deploy final HTTPS vhost config
+  template:
+    src: vhost.j2
+    dest: "{{ sites_dir }}/{{ vhost.server_name }}.conf"
+    mode: '0644'
+  notify: Reload openresty
