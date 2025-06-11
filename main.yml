@@ -66,6 +66,16 @@
             update_cache: yes
             state: present
 
+    
+    - name: Ensure OpenResty log directory exists
+      ansible.builtin.file:
+            path: /var/log/openresty
+            state: directory
+            owner: root
+            group: adm
+            mode: '0755'
+
+
     - name: Ensure OpenResty is started and enabled
       ansible.builtin.service:
         name: openresty

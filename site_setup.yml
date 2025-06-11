@@ -17,9 +17,9 @@
     src: vhost_acme.j2
     dest: "{{ sites_dir }}/{{ vhost.server_name }}.conf"
   when: not cert_status.stat.exists
-  notify: Reload openresty
+  notify: Restart Openresty
 
-- name: Wait for OpenResty to reload
+- name: Wait for OpenResty to Restart
   ansible.builtin.pause:
     seconds: 5
   when: not cert_status.stat.exists

@@ -6,10 +6,9 @@
     sites_dir: /etc/openresty/sites-enabled
     certbot_packages_debian:
       - certbot
-      - python3-certbot-nginx
     certbot_packages_redhat:
       - certbot
-      - python3-certbot-nginx
+
 
   tasks:
     - name: Ensure site directory exists
@@ -44,3 +43,8 @@
       ansible.builtin.service:
         name: openresty
         state: reloaded
+
+    - name: Restart openresty
+      ansible.builtin.service:
+        name: openresty
+        state: restarted
