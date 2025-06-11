@@ -4,6 +4,12 @@
   become: true
   vars:
     sites_dir: /etc/openresty/sites-enabled
+    certbot_packages_debian:
+      - certbot
+      - python3-certbot-nginx
+    certbot_packages_redhat:
+      - certbot
+      - python3-certbot-nginx
 
   tasks:
     - name: Ensure site directory exists
@@ -14,30 +20,24 @@
         group: root
         mode: '0755'
 
-    - name: Ensure webroot exists for {{ vhost.server_name }}
-      ansible.builtin.file:
-        path: "{{ vhost.webroot }}"
-        state: directory
-        owner: www-data
-        group: www-data
-        mode: '0755'
-      when: vhost.webroot is defined
+    - name: Install certbot and nginx plugin on Debian/Ubuntu
+      ansible.builtin.apt:
+        name: "{{ certbot_packages_debian }}"
+        state: present
+        update_cache: yes
+      when: ansible_facts['os_family'] == "Debian"
 
-    - name: Ensure certificate for {{ vhost.server_name }} via webroot
-      ansible.builtin.command: >
-        certbot certonly --webroot -w {{ vhost.webroot }}
-        --non-interactive --agree-tos
-        --email {{ vhost.email }} -d {{ vhost.server_name }}
-      args:
-        creates: "/etc/letsencrypt/live/{{ vhost.server_name }}/fullchain.pem"
-      when: vhost.webroot is defined
+    - name: Install certbot and nginx plugin on RedHat/CentOS
+      ansible.builtin.yum:
+        name: "{{ certbot_packages_redhat }}"
+        state: present
+      when: ansible_facts['os_family'] == "RedHat"
 
-    - name: Deploy vhost config for {{ vhost.server_name }}
-      ansible.builtin.template:
-        src: vhost.j2
-        dest: "{{ sites_dir }}/{{ vhost.server_name }}.conf"
-        mode: '0644'
-      notify: Reload openresty
+    - name: Configure virtualhosts
+      ansible.builtin.include_tasks: site_setup.yml
+      loop: "{{ vhosts }}"
+      loop_control:
+        loop_var: vhost
 
   handlers:
     - name: Reload openresty

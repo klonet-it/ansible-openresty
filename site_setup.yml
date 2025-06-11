@@ -1,7 +1,7 @@
 ---
-- name: Ensure certificate for {{ vhost.server_name }} via webroot
+- name: Ensure certificate for {{ vhost.server_name }} via nginx plugin
   ansible.builtin.command: >
-    certbot certonly --webroot -w {{ vhost.webroot }}
+    certbot certonly --nginx
     --non-interactive --agree-tos
     --email {{ vhost.email }} -d {{ vhost.server_name }}
   args:
@@ -11,6 +11,5 @@
   ansible.builtin.template:
     src: vhost.j2
     dest: "{{ sites_dir }}/{{ vhost.server_name }}.conf"
-    mode: "0644"
+    mode: '0644'
   notify: Reload openresty
-
