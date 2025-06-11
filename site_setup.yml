@@ -1,7 +1,15 @@
 ---
-- name: Ensure certificate for {{ vhost.server_name }} via nginx plugin
+- name: Ensure webroot directory exists
+  ansible.builtin.file:
+    path: "{{ vhost.webroot }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Ensure certificate for {{ vhost.server_name }} via webroot
   ansible.builtin.command: >
-    certbot certonly --nginx
+    certbot certonly --webroot -w {{ vhost.webroot }}
     --non-interactive --agree-tos
     --email {{ vhost.email }} -d {{ vhost.server_name }}
   args:

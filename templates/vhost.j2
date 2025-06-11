@@ -1,9 +1,24 @@
+# HTTP server - serve solo la challenge o redirige verso HTTPS
 server {
     listen 80;
     server_name {{ vhost.server_name }};
-    return 301 https://$host$request_uri;
+    root {{ vhost.webroot | default('/var/www/' ~ vhost.server_name) }};
+    index index.html index.htm;
+
+    # Let’s Encrypt Challenge
+    location /.well-known/acme-challenge/ {
+        root {{ vhost.webroot | default('/var/www/' ~ vhost.server_name) }};
+        allow all;
+    }
+
+    {% if vhost.redirect_to_https | default(true) %}
+    location / {
+        return 301 https://$host$request_uri;
+    }
+    {% endif %}
 }
 
+# HTTPS server (solo se certbot ha installato correttamente il certificato)
 server {
     listen 443 ssl;
     server_name {{ vhost.server_name }};
@@ -11,9 +26,26 @@ server {
     ssl_certificate     /etc/letsencrypt/live/{{ vhost.server_name }}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/{{ vhost.server_name }}/privkey.pem;
 
-    ssl_session_cache shared:SSL:1m;
-    ssl_session_timeout 10m;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
 
-{{ vhost.custom_config | indent(4) }}
+    root {{ vhost.webroot | default('/var/www/' ~ vhost.server_name) }};
+    index index.html index.htm index.php;
+
+    access_log /var/log/openresty/{{ vhost.server_name }}.access.log;
+    error_log  /var/log/openresty/{{ vhost.server_name }}.error.log;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Optional: handle PHP
+    {% if vhost.enable_php | default(false) %}
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php/{{ vhost.php_pool | default('php-fpm') }}.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+    {% endif %}
 }
-
