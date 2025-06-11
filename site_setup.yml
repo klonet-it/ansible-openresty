@@ -7,24 +7,29 @@
     group: www-data
     mode: '0755'
 
-- name: Deploy temporary vhost config for ACME challenge
+- name: Check if certificate already exists for {{ vhost.server_name }}
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ vhost.server_name }}/fullchain.pem"
+  register: cert_status
+
+- name: Deploy temporary ACME vhost
   template:
     src: vhost_acme.j2
     dest: "{{ sites_dir }}/{{ vhost.server_name }}.conf"
-    mode: '0644'
+  when: not cert_status.stat.exists
   notify: Reload openresty
 
-- name: Wait a few seconds to ensure config is loaded
+- name: Wait for OpenResty to reload
   ansible.builtin.pause:
     seconds: 5
+  when: not cert_status.stat.exists
 
-- name: Ensure certificate via webroot
+- name: Obtain certificate via certbot (first install)
   command: >
     certbot certonly --webroot -w {{ vhost.webroot }}
     --non-interactive --agree-tos
     --email {{ vhost.email }} -d {{ vhost.server_name }}
-  args:
-    creates: "/etc/letsencrypt/live/{{ vhost.server_name }}/fullchain.pem"
+  when: not cert_status.stat.exists
 
 - name: Deploy final HTTPS vhost config
   template:
