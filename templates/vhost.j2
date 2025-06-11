@@ -43,7 +43,7 @@ server {
     {% if vhost.enable_php | default(false) %}
     location ~ \.php$ {
         include fastcgi_params;
-        fastcgi_pass unix:/run/php/{{ vhost.php_pool | default('php-fpm') }}.sock;
+        fastcgi_pass unix:/run/php/{{php_version}}-{{ vhost.php_pool | default('php-fpm') }}.sock;
         fastcgi_index index.php;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
